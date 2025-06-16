@@ -5,3 +5,4 @@ chromadb
 unstructured
 faiss-cpu
 python-dotenv
+langchain-community
