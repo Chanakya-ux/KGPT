@@ -9,3 +9,5 @@ langchain-community
 langchain_huggingface
 langchain_text_splitters
 sentence_transformers
+fastapi
+uvicorn
