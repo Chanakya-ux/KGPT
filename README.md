@@ -14,6 +14,9 @@
 
 ---
 
+## 🚀 Deployment on Railway
 
-
+1. Install dependencies with `pip install -r requirements.txt`.
+2. Railway automatically uses the `procfile` command to start the FastAPI server.
+3. Set environment variables such as `OPENAI_API_KEY` in your Railway project settings.
 
