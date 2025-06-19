@@ -1,27 +1,50 @@
+# ─── 0) Imports and Environment ─────────────────────────────────────────────
 from dotenv import load_dotenv
 import os, requests, re
+import time
 
-# ─── 1) Load environment variables ──────────────────────────────────────────
 load_dotenv()
 OR_KEY  = os.getenv("OPENAI_API_KEY")
 OR_BASE = os.getenv("OPENAI_API_BASE")
 
-# ─── 2) Load documents and split ────────────────────────────────────────────
+# Hugging Face credentials
+HF_TOKEN = "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"
+HF_MODEL_ID = "sentence-transformers/all-MiniLM-L6-v2"
+
+# ─── 1) Loaders and Splitters ───────────────────────────────────────────────
 from langchain_community.document_loaders import UnstructuredPDFLoader
 from langchain_text_splitters import CharacterTextSplitter
 
-# ─── 3) Embeddings + FAISS ──────────────────────────────────────────────────
-from langchain_huggingface import HuggingFaceEmbeddings
+# ─── 2) FAISS Vector Store ──────────────────────────────────────────────────
 from langchain_community.vectorstores import FAISS
+from typing import List
+from huggingface_hub import InferenceClient
+
+
+class HFHubEmbeddings:
+    def __init__(self, model_id: str, hf_token: str):
+        self.client = InferenceClient(model=model_id, token=hf_token)
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        return [self.client.feature_extraction(text) for text in texts]
+
+    def embed_query(self, text: str) -> List[float]:
+        return self.client.feature_extraction(text)
+
+    def __call__(self, text: str) -> List[float]:
+        # Support legacy LangChain usage where the object is called directly
+        return self.embed_query(text)
 
 def load_vector_store(
     docs_path: str = "kgpt/data/static_kgp_docs",
-    embed_model: str = "sentence-transformers/all-MiniLM-L6-v2",
-    faiss_path: str = "kgpt/data/faiss_index"
+    faiss_path: str = "kgpt/data/faiss_index",
+    model_id: str = HF_MODEL_ID,
+    hf_token: str = HF_TOKEN
 ):
+    embeddings = HFHubEmbeddings(model_id=model_id, hf_token=hf_token)
+
     if os.path.exists(faiss_path):
         print(f"Loading Faiss index from {faiss_path} ...")
-        embeddings = HuggingFaceEmbeddings(model_name=embed_model)
         return FAISS.load_local(
             faiss_path, embeddings,
             normalize_L2=True,
@@ -36,41 +59,32 @@ def load_vector_store(
                 docs.extend(loader.load())
         splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         chunks = splitter.split_documents(docs)
-        embeddings = HuggingFaceEmbeddings(model_name=embed_model)
         vector_store = FAISS.from_documents(chunks, embeddings, normalize_L2=True)
         vector_store.save_local(faiss_path)
         return vector_store
 
-# ─── 4) Wikipedia fallback ──────────────────────────────────────────────────
+# ─── 3) Wikipedia Fallback ──────────────────────────────────────────────────
 def wikipedia_summary(query, lang='en'):
-    import re
-
-    # Known alias corrections
     alias_map = {
         "subhdip mukherjee": "shubdip mukherjee",
         "subhdeep mukherjee": "shubdip mukherjee"
     }
 
     original_query = query.lower().strip()
-
-    # Apply alias correction if needed
     for typo, corrected in alias_map.items():
         if typo in original_query:
             original_query = corrected
             break
 
-    # Remove common question words
     cleaned = re.sub(r"(who|what|when|where|why|how|is|are|was|were|does|do|did|tell me about|explain|can you)\s+", "", original_query, flags=re.IGNORECASE)
-
-    # Remove trailing punctuation
     cleaned = re.sub(r"[^\w\s]", "", cleaned).strip()
 
-    # Use only last 4 words (to avoid full sentence fragments)
     words = cleaned.split()
     if len(words) > 4:
         cleaned = " ".join(words[-4:])
 
-    page_title = cleaned.replace(" ", "_").capitalize()
+    from urllib.parse import quote
+    page_title = quote(cleaned.title())
 
     url = f"https://{lang}.wikipedia.org/api/rest_v1/page/summary/{page_title}"
     print(f"→ Wikipedia URL: {url}")
@@ -80,19 +94,20 @@ def wikipedia_summary(query, lang='en'):
         return res.json().get("extract")
     return None
 
-# ─── 5) Relevance scoring helper ────────────────────────────────────────────
+# ─── 4) Relevance Filter ────────────────────────────────────────────────────
 def is_context_relevant(query, context, threshold=1):
     query_words = set(word.lower() for word in query.split() if len(word) > 3)
     context_lower = context.lower()
     match_count = sum(1 for word in query_words if word in context_lower)
     return match_count >= threshold
 
-# ─── 6) Main inference pipeline ─────────────────────────────────────────────
+# ─── 5) Main Inference Pipeline ─────────────────────────────────────────────
 if __name__ == "__main__":
+    xy=time.time()
     vector_store = load_vector_store()
     retriever = vector_store.as_retriever(search_type="mmr", search_kwargs={"k": 5})
 
-    query = "explain about quantum mechanics in simple terms"
+    query = "Who is Elon Musk"
 
     # 1. Try FAISS retrieval
     docs = retriever.invoke(query)
@@ -151,3 +166,4 @@ Do not say things like "Based on the context" or "I don't have information"—ju
 
     print("\n=== ANSWER ===\n")
     print(answer, "\n")
+    print(time.time() - xy, "seconds elapsed")
