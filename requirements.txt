@@ -6,9 +6,7 @@ unstructured
 faiss-cpu
 python-dotenv
 langchain-community
-langchain_huggingface
 langchain_text_splitters
-sentence_transformers
 fastapi
 uvicorn
 huggingface_hub
