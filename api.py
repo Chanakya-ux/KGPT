@@ -1,24 +1,82 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from pydantic import BaseModel
-from kgpt.agent.rag_pipeline import load_vector_store, is_context_relevant, wikipedia_summary
+import os
+import requests
+from kgpt.agent.rag_pipeline import (
+    load_vector_store,
+    is_context_relevant,
+    wikipedia_summary
+)
 
-app = FastAPI()
+# Load environment variables
+from dotenv import load_dotenv
+load_dotenv()
 
-vector_store = load_vector_store()
-retriever = vector_store.as_retriever(search_type="mmr", search_kwargs={"k": 5})
+OR_KEY = os.getenv("OPENAI_API_KEY")
+OR_BASE = os.getenv("OPENAI_API_BASE")
 
-class QueryRequest(BaseModel):
-    query: str
+# Initialize FastAPI app
+app = FastAPI(title="KGPT Web Service")
 
+# Global variables
+vector_store = None
+retriever = None
+
+@app.on_event("startup")
+def load_pipeline():
+    global vector_store, retriever
+    vector_store = load_vector_store()
+    retriever = vector_store.as_retriever(search_type="mmr", search_kwargs={"k": 5})
+
+# Input model
+class QueryInput(BaseModel):
+    question: str
+
+# API endpoint
 @app.post("/query")
-def query_rag(request: QueryRequest):
-    query = request.query
+def query_kgpt(input_data: QueryInput):
+    query = input_data.question.strip()
+    
+    # 1. Retrieve documents
     docs = retriever.invoke(query)
-    context = "\n".join([d.page_content for d in docs])
+    retrieved_texts = [d.page_content for d in docs]
+    context = "\n\n".join(retrieved_texts).strip()
+
+    # 2. Relevance check + Wikipedia fallback
     if not context or not is_context_relevant(query, context):
         wiki_info = wikipedia_summary(query)
         context = wiki_info if wiki_info else "No relevant context found."
-    # Build your prompt and call LLM as before...
-    # response = call_llm(prompt)
-    # return {"answer": response}
-    return {"context": context}
+
+    # 3. Build prompt
+    prompt = f"""
+You are an expert assistant for IIT Kharagpur students.
+Given the following context and question, provide a direct, concise answer.
+If the context is not helpful, use your own knowledge or general information, but do not mention the context, its relevance, or apologize.
+Do not say things like "Based on the context" or "I don't have information"—just answer the question as best as you can.
+
+=== CONTEXT ===
+{context}
+
+=== QUESTION ===
+{query}
+"""
+
+    # 4. Call OpenRouter
+    url = f"{OR_BASE}/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {OR_KEY}",
+        "Content-Type": "application/json",
+    }
+    body = {
+        "model": "mistralai/mixtral-8x7b-instruct",
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 512,
+        "temperature": 0.5,
+    }
+
+    r = requests.post(url, json=body, headers=headers)
+    r.raise_for_status()
+    data = r.json()
+    content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+    
+    return {"answer": content.strip()}
