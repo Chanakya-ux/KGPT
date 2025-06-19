@@ -11,3 +11,4 @@ langchain_text_splitters
 sentence_transformers
 fastapi
 uvicorn
+hugging_face_hub
