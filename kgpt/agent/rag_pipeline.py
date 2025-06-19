@@ -8,7 +8,7 @@ OR_KEY  = os.getenv("OPENAI_API_KEY")
 OR_BASE = os.getenv("OPENAI_API_BASE")
 
 # Hugging Face credentials
-HF_TOKEN = "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"
+HF_TOKEN = os.getenv("HUGGINGFACE_API_KEY")
 HF_MODEL_ID = "sentence-transformers/all-MiniLM-L6-v2"
 
 # ─── 1) Loaders and Splitters ───────────────────────────────────────────────
