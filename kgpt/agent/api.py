@@ -1,8 +1,17 @@
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware  # ✅ Import this
 from kgpt.agent.rag_pipeline import load_vector_store, is_context_relevant, wikipedia_summary
 
 app = FastAPI()
+# ✅ Enable CORS for local frontend (http://localhost:3000)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production: ["https://your-vercel-app.vercel.app"]
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 vector_store = load_vector_store()
 retriever = vector_store.as_retriever(search_type="mmr", search_kwargs={"k": 5})
