@@ -7,7 +7,7 @@ app = FastAPI()
 # ✅ Enable CORS for local frontend (http://localhost:3000)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production: ["https://your-vercel-app.vercel.app"]
+    allow_origins=["https://kgpt-client.vercel.app/"],  # In production: ["https://your-vercel-app.vercel.app"]
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
