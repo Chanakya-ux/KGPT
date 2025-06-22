@@ -26,7 +26,7 @@ retriever = None
 def load_pipeline():
     global vector_store, retriever
     vector_store = load_vector_store()
-    retriever = vector_store.as_retriever(search_type="mmr", search_kwargs={"k": 5})
+    retriever = vector_store.as_retriever(search_type="mmr", search_kwargs={"k": 2})
 
 # Input model
 class QueryInput(BaseModel):
