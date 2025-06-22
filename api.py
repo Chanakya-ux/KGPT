@@ -51,9 +51,9 @@ def query_kgpt(input_data: QueryInput):
     prompt = f"""
 You are an expert assistant for IIT Kharagpur students.
 Given the following context and question, provide a direct, concise answer.
-If the context is not helpful, use your own knowledge or general information, but do not mention the context, its relevance, or apologize.
+If the context is not helpful, use your own knowledge or general information, but do not mention the context(like donot mention "according to the context provided" or simiar things), its relevance, or apologize.
 Do not say things like "Based on the context" or "I don't have information"—just answer the question as best as you can.
-
+Keep in mind that you are answering questions related to IIT Kharagpur,you know everything about iitkgp,and only iitkgp
 === CONTEXT ===
 {context}
 
