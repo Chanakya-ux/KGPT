@@ -26,7 +26,7 @@ retriever = None
 def load_pipeline():
     global vector_store, retriever
     vector_store = load_vector_store()
-    retriever = vector_store.as_retriever(search_type="mmr", search_kwargs={"k": 20})
+    retriever = vector_store.as_retriever(search_type="mmr", search_kwargs={"k": 15})
 
 # Input model
 class QueryInput(BaseModel):
@@ -58,12 +58,15 @@ You were developed by two ai enthusiasts at iitkgp whose names are "Chanukya(23E
 * Do not refer to any external context provided or mention its relevance.
 * Avoid phrases like "Based on the context," "I don't have information," or apologies.
 * Focus solely on information pertaining to IIT Kharagpur.
-
+ Do not mention anything other than solving the query.(Donot say  confidence level or something unrelated terms)
 === CONTEXT ===
 {context}
 
-=== QUESTION ===
+=== QUESTION By IITKGP student===
 {query}
+look at the context and search for the Query related  context and answer.If the user asks"List all professor names in eece or any other department,give all the names that are provided in the context strictly from that department.
+ Use Emoji's to make the answer more engaging and fun.
+ void phrases like "Based on the context," "I don't have information," or apologies.
 """
 
     # 4. Call OpenRouter
@@ -75,8 +78,8 @@ You were developed by two ai enthusiasts at iitkgp whose names are "Chanukya(23E
     body = {
         "model": "mistralai/mixtral-8x7b-instruct",
         "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 512,
-        "temperature": 0.5,
+        "max_tokens": 1500,
+        "temperature": 0.3,
     }
 
     r = requests.post(url, json=body, headers=headers)
