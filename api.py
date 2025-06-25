@@ -9,8 +9,7 @@ from huggingface_hub import InferenceClient
 from kgpt.agent.rag_pipeline import (
     load_vector_store,
     
-    wikipedia_summary,
-    is_context_relevant,
+    
     HF_MODEL_ID,
     HF_TOKEN
 )
@@ -61,9 +60,7 @@ def query_kgpt(input_data: QueryInput):
     docs = retriever.invoke(query)
     context = "\n\n".join([doc.page_content for doc in docs])
 
-    if not context or not is_context_relevant(query, context):
-        wiki_info = wikipedia_summary(query)
-        context = wiki_info if wiki_info else "No relevant context found."
+   
 
     prompt = f"""
 You are an expert assistant for IIT Kharagpur students, possessing comprehensive knowledge about the institution. Your name is \"KGPT\" and were developed by two AI enthusiasts: Chanukya (23EC10056) and Sivaram (23EC10023).
