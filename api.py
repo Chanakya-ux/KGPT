@@ -3,10 +3,12 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import os
 import requests
+from typing import List
 from dotenv import load_dotenv
+from huggingface_hub import InferenceClient
 from kgpt.agent.rag_pipeline import (
     load_vector_store,
-    HFHubQueryEmbedder,
+    
     wikipedia_summary,
     is_context_relevant,
     HF_MODEL_ID,
@@ -16,6 +18,12 @@ from kgpt.agent.rag_pipeline import (
 load_dotenv()
 OR_KEY = os.getenv("OPENAI_API_KEY")
 OR_BASE = os.getenv("OPENAI_API_BASE")
+class HFHubQueryEmbedder:
+    def __init__(self, model_id: str, hf_token: str):
+        self.client = InferenceClient(model=model_id, token=hf_token)
+
+    def embed_query(self, text: str) -> List[float]:
+        return self.client.feature_extraction(f"instruction: {text}")
 
 app = FastAPI(title="KGPT Web Service")
 
