@@ -17,7 +17,8 @@ import numpy as np
 import os
 
 # Load FAISS index
-index_file = os.path.join(os.path.dirname(__file__), "index.faiss")
+index_file = os.path.join(os.path.dirname(__file__), "faiss_mini", "index.faiss")
+
 index_mini = faiss.read_index(index_file)
 
 # Load embedding arrays
