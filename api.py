@@ -48,7 +48,7 @@ def hybrid_embed_query(query: str,top_k=5,intermediate_k=50):
     print(top_50)
     top_50_bse = [corpus_bse[i] for i in I_mini[0]]
     query_bse = bge_client.feature_extraction(f"instruction: {query}")
-    similarities = cosine_similarity(query_bse, top_50_bse)[0]
+    similarities = cosine_similarity(query_bse, top_50_bse)
     reranked = sorted(zip(top_50, similarities), key=lambda x: x[1], reverse=True)
     top_k_results = reranked[:top_k]
     return top_k_results
