@@ -6,6 +6,50 @@ import requests
 from typing import List
 from dotenv import load_dotenv
 from huggingface_hub import InferenceClient
+import numpy as np
+import faiss
+HF_SECRET ="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"
+bge_client = InferenceClient(model="BAAI/bge-base-en-v1.5",token=HF_SECRET)
+miniml_client = InferenceClient(model="sentence-transformers/all-MiniLM-L6-v2", token=HF_SECRET)
+faiss_dir = "faiss_mini"
+import faiss
+import numpy as np
+import os
+
+# Load FAISS index
+index_file = os.path.join(os.path.dirname(__file__), "index.faiss")
+index_mini = faiss.read_index(index_file)
+
+# Load embedding arrays
+corpus_mini = np.load(os.path.join(os.path.dirname(__file__), "corpus_mini.npy"))
+corpus_bse = np.load(os.path.join(os.path.dirname(__file__), "corpus_bse.npy"))
+
+# Load the original chunks (text corpus) – assuming saved as .txt
+with open(os.path.join(os.path.dirname(__file__), "my_chunks.txt"), "r", encoding="utf-8") as f:
+    all_text = f.read()
+
+# Split text into individual chunks
+corpus = [chunk.strip() for chunk in all_text.split("chunk") if chunk.strip()]
+
+def cosine_similarity(a, b):
+    a = np.array(a)
+    b = np.array(b)
+    return np.dot(a, b.T) / (np.linalg.norm(a) * np.linalg.norm(b, axis=1))
+def hybrid_embed_query(query: str,top_k=5,intermediate_k=50):
+    # Embed query using MiniLM
+    query_mini = miniml_client.feature_extraction(f"instruction: {query}")
+    
+    # Perform initial retrieval using MiniLM
+    index_mini = faiss.read_index(index_file)
+    D_mini, I_mini = index_mini.search(np.array([query_mini]), intermediate_k)
+    top_50 = [corpus[i] for i in I_mini[0]]
+    print(top_50)
+    top_50_bse = [corpus_bse[i] for i in I_mini[0]]
+    query_bse = bge_client.feature_extraction(f"instruction: {query}")
+    similarities = cosine_similarity(query_bse, top_50_bse)[0]
+    reranked = sorted(zip(top_50, similarities), key=lambda x: x[1], reverse=True)
+    top_k_results = reranked[:top_k]
+    return top_k_results
 from kgpt.agent.rag_pipeline import (
     load_vector_store,
     
@@ -57,8 +101,9 @@ def load_pipeline():
 @app.post("/query")
 def query_kgpt(input_data: QueryInput):
     query = input_data.question.strip()
-    docs = retriever.invoke(query)
-    context = "\n\n".join([doc.page_content for doc in docs])
+    top_chunks = hybrid_embed_query(query)
+
+    context = "\n\n".join([chunk for chunk in top_chunks])
 
    
 
