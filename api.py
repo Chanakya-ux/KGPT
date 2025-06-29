@@ -33,9 +33,10 @@ with open(os.path.join(os.path.dirname(__file__), "my_chunks.txt"), "r", encodin
 corpus = [chunk.strip() for chunk in all_text.split("chunk") if chunk.strip()]
 
 def cosine_similarity(a, b):
-    a = np.array(a)
+    a = np.array(a).reshape(1, -1)
     b = np.array(b)
-    return np.dot(a, b.T) / (np.linalg.norm(a) * np.linalg.norm(b, axis=1))
+    return np.dot(b, a.T).squeeze() / (np.linalg.norm(b, axis=1) * np.linalg.norm(a))
+
 def hybrid_embed_query(query: str,top_k=5,intermediate_k=50):
     # Embed query using MiniLM
     query_mini = miniml_client.feature_extraction(f"instruction: {query}")
