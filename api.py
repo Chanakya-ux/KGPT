@@ -105,7 +105,8 @@ def query_kgpt(input_data: QueryInput):
     query = input_data.question.strip()
     top_chunks = hybrid_embed_query(query)
 
-    context = "\n\n".join([chunk for chunk in top_chunks])
+    context = "\n\n".join([chunk[0] for chunk in top_chunks])
+
 
    
 
