@@ -12,9 +12,6 @@ HF_SECRET =os.getenv("HF_SECRET")
 bge_client = InferenceClient(model="BAAI/bge-base-en-v1.5",token=HF_SECRET)
 miniml_client = InferenceClient(model="sentence-transformers/all-MiniLM-L6-v2", token=HF_SECRET)
 faiss_dir = "faiss_mini"
-import faiss
-import numpy as np
-import os
 
 # Load FAISS index
 index_file = os.path.join(os.path.dirname(__file__), "faiss_mini", "index.faiss")
@@ -42,7 +39,7 @@ def hybrid_embed_query(query: str,top_k=5,intermediate_k=50):
     query_mini = miniml_client.feature_extraction(f"instruction: {query}")
     
     # Perform initial retrieval using MiniLM
-    index_mini = faiss.read_index(index_file)
+    
     D_mini, I_mini = index_mini.search(np.array([query_mini]), intermediate_k)
     top_50 = [corpus[i] for i in I_mini[0]]
     print(top_50)
