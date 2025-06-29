@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from huggingface_hub import InferenceClient
 import numpy as np
 import faiss
-HF_SECRET ="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"
+HF_SECRET =os.getenv("HF_SECRET")
 bge_client = InferenceClient(model="BAAI/bge-base-en-v1.5",token=HF_SECRET)
 miniml_client = InferenceClient(model="sentence-transformers/all-MiniLM-L6-v2", token=HF_SECRET)
 faiss_dir = "faiss_mini"
